@@ -1,0 +1,21 @@
+{
+  "name": "Afalagi Reunification",
+  "short_name": "Afalagi",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#121820",
+  "theme_color": "#0ca692",
+  "description": "A Progressive Web App aimed at reuniting displaced or missing persons with their families.",
+  "icons": [
+    {
+      "src": "/vite.svg",
+      "type": "image/svg+xml",
+      "sizes": "192x192"
+    },
+    {
+      "src": "/vite.svg",
+      "type": "image/svg+xml",
+      "sizes": "512x512"
+    }
+  ]
+}
