@@ -85,7 +85,7 @@ export default function SearchPage({ reports }) {
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
                         {filtered.map(report => (
                             <div key={report.id} className="card animate-fade-in" style={{ padding: 0, overflow: 'hidden' }}>
-                                <img src={report.image} alt={report.name} style={{ width: '100%', height: '200px', objectFit: 'cover' }} />
+                                <img src={report.image} alt={report.name} style={{ width: '100%', maxHeight: '360px', objectFit: 'contain', background: 'var(--color-bg)', display: 'block' }} />
                                 <div style={{ padding: '1.5rem' }}>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                                         <h3 style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>{report.name}, <span className="text-muted" style={{ fontWeight: 400 }}>{report.age}</span></h3>
