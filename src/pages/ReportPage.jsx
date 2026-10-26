@@ -1,32 +1,76 @@
 import React, { useState } from 'react';
 import { Camera, AlertCircle, CheckCircle } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { api } from '../api/api';
 
 export default function ReportPage({ setReports, user }) {
     const [formData, setFormData] = useState({
         name: '',
         age: '',
+        gender: 'Not specified',
         location: '',
         dateLost: '',
         description: '',
-        contact: user ? user.phone : '',
+        contact: user ? (user.phone || user.email) : '',
         image: null
     });
 
+    const [selectedFile, setSelectedFile] = useState(null);
     const [submitted, setSubmitted] = useState(false);
+    const [loading, setLoading] = useState(false);
+    const [errorMessage, setErrorMessage] = useState('');
 
-    // In a real PWA this would be an IndexedDB queue for offline sync
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
         if (!formData.name || !formData.age) return;
+        setLoading(true);
+        setErrorMessage('');
 
-        const newReport = {
-            id: Date.now(),
-            ...formData,
-            image: formData.image || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=800&q=80"
-        };
+        let finalImageUrl = formData.image;
 
-        setReports(prev => [newReport, ...prev]);
-        setSubmitted(true);
+        try {
+            // If a file was selected, upload it to the backend
+            if (selectedFile) {
+                try {
+                    const uploadRes = await api.uploadImage(selectedFile);
+                    if (uploadRes && uploadRes.url) {
+                        finalImageUrl = uploadRes.url;
+                    }
+                } catch (uploadErr) {
+                    console.warn('Image upload to server failed, using preview:', uploadErr);
+                }
+            }
+
+            const payload = {
+                name: formData.name,
+                age: Number(formData.age),
+                gender: formData.gender || 'Not specified',
+                location: formData.location,
+                dateLost: formData.dateLost,
+                description: formData.description,
+                contact: formData.contact,
+                image: finalImageUrl || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=800&q=80"
+            };
+
+            // Call API to persist in PostgreSQL
+            let createdReport;
+            try {
+                createdReport = await api.createReport(payload);
+            } catch (apiErr) {
+                console.warn('Backend API unavailable, saving locally:', apiErr);
+                createdReport = {
+                    id: Date.now(),
+                    ...payload,
+                };
+            }
+
+            setReports(prev => [createdReport, ...prev]);
+            setSubmitted(true);
+        } catch (err) {
+            setErrorMessage(err.message || 'Failed to submit report. Please try again.');
+        } finally {
+            setLoading(false);
+        }
     };
 
     const handleChange = (e) => {
@@ -37,6 +81,7 @@ export default function ReportPage({ setReports, user }) {
     const handleImageChange = (e) => {
         const file = e.target.files[0];
         if (file) {
+            setSelectedFile(file);
             const reader = new FileReader();
             reader.onloadend = () => {
                 setFormData(prev => ({ ...prev, image: reader.result }));
@@ -51,7 +96,7 @@ export default function ReportPage({ setReports, user }) {
                 <AlertCircle size={48} color="var(--color-secondary)" style={{ margin: '0 auto 1rem' }} />
                 <h2>Authentication Required</h2>
                 <p className="text-muted" style={{ margin: '1rem 0 2rem' }}>You must be signed in to submit a missing person report.<br />This prevents spam and helps verify information.</p>
-                <a href="/auth" className="btn btn-primary" style={{ padding: '0.8rem 2rem' }}>Sign In to Report</a>
+                <Link to="/auth" className="btn btn-primary" style={{ padding: '0.8rem 2rem' }}>Sign In to Report</Link>
             </div>
         );
     }
@@ -62,7 +107,20 @@ export default function ReportPage({ setReports, user }) {
                 <CheckCircle size={64} color="var(--color-primary)" style={{ margin: '0 auto 1rem' }} />
                 <h2 style={{ fontSize: '2rem', marginBottom: '1rem' }}>Report Submitted</h2>
                 <p className="text-muted" style={{ fontSize: '1.2rem', marginBottom: '2rem' }}>Your report is now live in the global search system. We hope for a quick reunification.</p>
-                <button onClick={() => setSubmitted(false)} className="btn btn-outline" style={{ padding: '0.8rem 2rem' }}>Submit Another Report</button>
+                <button onClick={() => {
+                    setSubmitted(false);
+                    setSelectedFile(null);
+                    setFormData({
+                        name: '',
+                        age: '',
+                        gender: 'Not specified',
+                        location: '',
+                        dateLost: '',
+                        description: '',
+                        contact: user ? (user.phone || user.email) : '',
+                        image: null
+                    });
+                }} className="btn btn-outline" style={{ padding: '0.8rem 2rem' }}>Submit Another Report</button>
             </div>
         );
     }
@@ -71,6 +129,12 @@ export default function ReportPage({ setReports, user }) {
         <div className="animate-fade-in">
             <h2 style={{ marginBottom: '0.5rem', fontSize: '2rem' }}>Report Missing Person</h2>
             <p className="text-muted" style={{ marginBottom: '2rem' }}>Fill in as many details as possible to help identify your loved one.</p>
+
+            {errorMessage && (
+                <div style={{ padding: '0.8rem', background: 'rgba(239, 68, 68, 0.1)', border: '1px solid #ef4444', borderRadius: '8px', color: '#dc2626', marginBottom: '1rem' }}>
+                    {errorMessage}
+                </div>
+            )}
 
             <form onSubmit={handleSubmit} className="card animate-fade-in animate-delay-1">
                 <label className="form-label" style={{ display: 'block', marginBottom: '1rem' }}>Photo (Optional but highly recommended)</label>
@@ -142,8 +206,8 @@ export default function ReportPage({ setReports, user }) {
                     </p>
                 </div>
 
-                <button type="submit" className="btn btn-primary btn-full" style={{ marginTop: '1rem', fontSize: '1.2rem', padding: '1rem' }}>
-                    Publish Report
+                <button type="submit" disabled={loading} className="btn btn-primary btn-full" style={{ marginTop: '1rem', fontSize: '1.2rem', padding: '1rem' }}>
+                    {loading ? 'Submitting Report...' : 'Publish Report'}
                 </button>
             </form>
         </div>

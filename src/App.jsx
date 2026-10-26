@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Link, useLocation } from 'react-router-dom';
 import { Home, Search, PlusCircle, User, Activity } from 'lucide-react';
 import HomePage from './pages/HomePage';
 import ReportPage from './pages/ReportPage';
 import SearchPage from './pages/SearchPage';
 import AuthPage from './pages/AuthPage';
+import { api, getSavedUser, setSavedUser, setAuthToken } from './api/api';
 
 const INITIAL_DATA = [
   { id: 1, name: "Abebe Bekele", age: 43, location: "Tigray Region", dateLost: "2023-11-12", description: "Tall, wearing a blue jacket", contact: "+251911234567", image: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=800&q=80" },
@@ -39,7 +40,37 @@ function BottomNav() {
 
 function App() {
   const [reports, setReports] = useState(INITIAL_DATA);
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState(getSavedUser());
+
+  useEffect(() => {
+    // Sync with backend API
+    api.getReports()
+      .then((res) => {
+        if (res && Array.isArray(res.data) && res.data.length > 0) {
+          setReports(res.data);
+        }
+      })
+      .catch((err) => {
+        console.info('Backend API offline or connecting; using local data cache.');
+      });
+
+    // Check auth profile if token exists
+    if (user) {
+      api.getProfile()
+        .then((res) => {
+          if (res && res.user) {
+            setUser(res.user);
+            setSavedUser(res.user);
+          }
+        })
+        .catch(() => {
+          // Token expired or invalid
+          setAuthToken(null);
+          setSavedUser(null);
+          setUser(null);
+        });
+    }
+  }, []);
 
   return (
     <BrowserRouter>
