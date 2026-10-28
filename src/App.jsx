@@ -5,7 +5,7 @@ import HomePage from './pages/HomePage';
 import ReportPage from './pages/ReportPage';
 import SearchPage from './pages/SearchPage';
 import AuthPage from './pages/AuthPage';
-
+  
 const INITIAL_DATA = [
   { id: 1, name: "Abebe Bekele", age: 43, location: "Tigray Region", dateLost: "2023-11-12", description: "Tall, wearing a blue jacket", contact: "+251911234567", image: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=800&q=80" },
   { id: 2, name: "Fatima Ali", age: 12, location: "Afar Region", dateLost: "2024-01-05", description: "Small scar on left cheek. Wearing a red dress.", contact: "+251922345678", image: "https://images.unsplash.com/photo-1544717297-fa95b6ee9643?w=800&q=80" },
@@ -42,7 +42,7 @@ function App() {
   const [user, setUser] = useState(null);
 
   return (
-    <BrowserRouter>
+    <BrowserRouter basename={import.meta.env.BASE_URL}>
       <div className="header">
         <Link to="/" className="brand">
           <Activity color="var(--color-primary)" />
